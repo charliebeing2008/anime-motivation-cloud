@@ -19,9 +19,12 @@ os.makedirs("output", exist_ok=True)
 
 def download(url, filename):
     if not os.path.exists(filename):
-        r = requests.get(url)
+        r = requests.get(url, stream=True, timeout=60, headers={"User-Agent": "Mozilla/5.0"})
+        r.raise_for_status()
         with open(filename, "wb") as f:
-            f.write(r.content)
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
 
 download(CLIP_URL, "assets/clip.mp4")
 download(MUSIC_URL, "assets/music.mp3")
