@@ -11,9 +11,8 @@ Stay consistent.
 Your future self will thank you.
 """
 
-CLIP_URL = "https://cdn.pixabay.com/video/2024/03/19/204980_large.mp4"
-MUSIC_URL = "https://cdn.pixabay.com/download/audio/2022/03/15/audio_1a609a351d.mp3"
-
+CLIP_URL = "https://videos.pexels.com/video-files/3571264/3571264-uhd_2160_4096_25fps.mp4"
+MUSIC_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
 os.makedirs("assets", exist_ok=True)
 os.makedirs("output", exist_ok=True)
 
