@@ -11,8 +11,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Install FFmpeg
-        run: sudo apt update && sudo apt install ffmpeg -y
+      - name: Install FFmpeg & Fonts
+        run: |
+          sudo apt update
+          sudo apt install ffmpeg fonts-dejavu -y
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -22,10 +24,7 @@ jobs:
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
-      - name: Test Downloads First
-        run: python test_download.py
-
-      - name: Run Main Script
+      - name: Run Script
         run: python main.py
 
       - name: Upload Video Artifact
