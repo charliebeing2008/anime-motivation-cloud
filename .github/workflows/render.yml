@@ -25,6 +25,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Script
+        env:
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         run: python main.py
 
       - name: Upload Video Artifact

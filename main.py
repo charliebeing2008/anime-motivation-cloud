@@ -8,23 +8,58 @@ import urllib.request
 os.makedirs("assets", exist_ok=True)
 os.makedirs("output", exist_ok=True)
 
-# 100% working direct download URLs (no bot protection)
-VIDEO_URL = "https://download.blender.org/demo/movies/BBB/bbb_sunflower_1080p_30fps_normal.mp4"
+# ─── Download Video from Pexels (GitHub Actions friendly) ────
+# Get FREE API key from: https://www.pexels.com/api/
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
+
 MUSIC_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"
 
 VOICE_TEXT = "Discipline beats motivation. Most people quit too early. Stay consistent. Your future self will thank you."
+
+
+def download_pexels_video(path):
+    """Download a free HD video from Pexels API"""
+    if os.path.exists(path):
+        print(f"✅ Already exists: {path}")
+        return
+
+    if not PEXELS_API_KEY:
+        raise ValueError("❌ PEXELS_API_KEY not set! Add it as a GitHub Secret.")
+
+    print("⬇️ Fetching video from Pexels...")
+    req = urllib.request.Request(
+        "https://api.pexels.com/videos/search?query=motivation+city+night&per_page=1&orientation=portrait",
+        headers={"Authorization": PEXELS_API_KEY}
+    )
+    with urllib.request.urlopen(req) as resp:
+        data = json.loads(resp.read())
+
+    # Get best quality video file
+    video_files = data["videos"][0]["video_files"]
+    # Prefer HD portrait video
+    hd_files = [v for v in video_files if v.get("height", 0) >= 1080]
+    best = hd_files[0] if hd_files else video_files[0]
+
+    video_url = best["link"]
+    print(f"⬇️ Downloading video: {video_url[:60]}...")
+    urllib.request.urlretrieve(video_url, path)
+    size = os.path.getsize(path) / (1024 * 1024)
+    print(f"✅ Video downloaded! Size: {size:.2f} MB")
+
 
 def download(url, path):
     if not os.path.exists(path):
         print(f"⬇️ Downloading {path}...")
         urllib.request.urlretrieve(url, path)
-        size = os.path.getsize(path) / (1024*1024)
+        size = os.path.getsize(path) / (1024 * 1024)
         print(f"✅ Done! Size: {size:.2f} MB")
     else:
         print(f"✅ Already exists: {path}")
 
-download(VIDEO_URL, "assets/clip.mp4")
+
+download_pexels_video("assets/clip.mp4")
 download(MUSIC_URL, "assets/music.mp3")
+
 
 # ─── Voice + Word Timestamps ─────────────────────────────────
 
@@ -51,6 +86,7 @@ async def generate_voice():
         json.dump(words, f, indent=2)
 
     print(f"✅ Voice ready! Words: {len(words)}")
+
 
 print("🎙️ Generating voice...")
 asyncio.run(generate_voice())
