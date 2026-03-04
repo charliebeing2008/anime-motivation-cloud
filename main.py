@@ -57,6 +57,4 @@ ffmpeg_command = [
 
 subprocess.run(ffmpeg_command, check=True)
 
-print("Video successfully created at output/final.mp4")git add .
-git commit -m "Fix ffmpeg execution using subprocess"
-git push
+print("Video successfully created at output/final.mp4")
