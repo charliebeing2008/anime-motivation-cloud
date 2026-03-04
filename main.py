@@ -2,52 +2,31 @@ import os
 import asyncio
 import edge_tts
 import subprocess
-import yt_dlp
 import json
+import urllib.request
 
 os.makedirs("assets", exist_ok=True)
 os.makedirs("output", exist_ok=True)
 
-VIDEO_URL = "https://archive.org/download/anime-amv-test/amv.mp4"
-MUSIC_URL = "https://archive.org/download/testmp3testfile/mpthreetest.mp3"
+# 100% working direct download URLs (no bot protection)
+VIDEO_URL = "https://download.blender.org/demo/movies/BBB/bbb_sunflower_1080p_30fps_normal.mp4"
+MUSIC_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"
 
 VOICE_TEXT = "Discipline beats motivation. Most people quit too early. Stay consistent. Your future self will thank you."
 
-# ─── Download ───────────────────────────────────────────────
-
-def download_file(url, output_path):
-    if not os.path.exists(output_path):
-        ydl_opts = {
-            'outtmpl': output_path,
-            'format': 'mp4/best[ext=mp4]/best',
-            'quiet': False,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        print(f"✅ Downloaded: {output_path}")
+def download(url, path):
+    if not os.path.exists(path):
+        print(f"⬇️ Downloading {path}...")
+        urllib.request.urlretrieve(url, path)
+        size = os.path.getsize(path) / (1024*1024)
+        print(f"✅ Done! Size: {size:.2f} MB")
     else:
-        print(f"✅ Already exists: {output_path}")
+        print(f"✅ Already exists: {path}")
 
-def download_music(url, output_path):
-    if not os.path.exists(output_path):
-        ydl_opts = {
-            'outtmpl': output_path,
-            'format': 'bestaudio/best',
-            'quiet': False,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        print(f"✅ Music downloaded: {output_path}")
-    else:
-        print(f"✅ Music already exists: {output_path}")
+download(VIDEO_URL, "assets/clip.mp4")
+download(MUSIC_URL, "assets/music.mp3")
 
-print("⬇️ Downloading anime clip...")
-download_file(VIDEO_URL, "assets/clip.mp4")
-
-print("⬇️ Downloading music...")
-download_music(MUSIC_URL, "assets/music.mp3")
-
-# ─── Voice + Timestamps ──────────────────────────────────────
+# ─── Voice + Word Timestamps ─────────────────────────────────
 
 async def generate_voice():
     communicate = edge_tts.Communicate(VOICE_TEXT, "en-US-GuyNeural")
@@ -71,45 +50,50 @@ async def generate_voice():
     with open("assets/words.json", "w") as f:
         json.dump(words, f, indent=2)
 
-    print(f"✅ Voice generated with {len(words)} words!")
+    print(f"✅ Voice ready! Words: {len(words)}")
 
-print("🎙️ Generating voice with word timestamps...")
+print("🎙️ Generating voice...")
 asyncio.run(generate_voice())
 
-# ─── Build drawtext filter ───────────────────────────────────
+# ─── Word-by-word Captions ───────────────────────────────────
 
 with open("assets/words.json") as f:
     words = json.load(f)
 
 drawtext_filters = []
+font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
-for i, w in enumerate(words):
+for w in words:
     start = w["start"]
     end = w["end"]
-    word = w["word"].replace("'", "\\'").replace(":", "\\:").replace(",", "").replace(".", "")
+    word = (w["word"]
+            .replace("'", "")
+            .replace(":", "")
+            .replace(",", "")
+            .replace(".", "")
+            .replace('"', ""))
 
-    # All words shown dimly at same time (previous + next)
-    # Highlighted word shown bright white + bigger
+    if not word.strip():
+        continue
 
-    # Background shadow
     drawtext_filters.append(
-        f"drawtext=text='{word}'"
-        f":fontsize=80"
-        f":fontcolor=white@0.95"
-        f":borderw=4"
-        f":bordercolor=black@0.8"
+        f"drawtext=fontfile={font}"
+        f":text='{word}'"
+        f":fontsize=90"
+        f":fontcolor=white"
+        f":borderw=5"
+        f":bordercolor=black"
         f":x=(w-text_w)/2"
-        f":y=(h/2)-40"
+        f":y=(h*2/3)"
         f":enable='between(t,{start:.3f},{end:.3f})'"
         f":box=1"
-        f":boxcolor=black@0.4"
-        f":boxborderw=10"
-        f":fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        f":boxcolor=black@0.5"
+        f":boxborderw=12"
     )
 
 caption_filter = ",".join(drawtext_filters)
 
-# ─── FFmpeg ──────────────────────────────────────────────────
+# ─── FFmpeg Final Render ─────────────────────────────────────
 
 filter_complex = (
     f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
@@ -136,6 +120,6 @@ ffmpeg_command = [
     "output/final.mp4"
 ]
 
-print("🎬 Creating final video with captions...")
+print("🎬 Rendering video with captions...")
 subprocess.run(ffmpeg_command, check=True)
-print("✅ Done! output/final.mp4 ready hai!")
+print("✅ output/final.mp4 ready!")
