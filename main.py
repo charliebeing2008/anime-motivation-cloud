@@ -68,3 +68,5 @@ output/final.mp4
 os.system(ffmpeg_cmd)
 
 print("✅ Video Created: output/final.mp4")
+print("Files in output folder:")
+os.system("ls -R")
